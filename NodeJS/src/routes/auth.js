@@ -1,10 +1,12 @@
 const express = require('express')
-const authRouter = express.Router()
+const router = express.Router()
+const controllers = require('../controllers')
 
-const loginRequestHandler = () => {
-
+const loginRequestHandler = (req,res) => {
+    console.log("loginRequestHandler",req.body);
+    res.status(200).send({msg:'success'})
 }
 
-authRouter.use('/login',loginRequestHandler)
+router.post('/login',controllers.auth.signin)
 
-module.exports = authRouter
+module.exports = router
