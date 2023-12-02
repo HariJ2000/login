@@ -4,10 +4,12 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const PORT = process.env.PORT || 8080
 const routes = require('./routes')
+const { connectDB } = require('./db/config')
 
 const app = express()
 
 const startServer = () => {
+    connectDB()
     app.use(cors())
     app.use(bodyParser.json())
     app.use('/api',routes)

@@ -11,7 +11,7 @@ const Login = () => {
   const loginWithGoogle = useGoogleLogin({
     onSuccess: respose => {
         console.log(respose);
-        axios.post('http://localhost:8080/login', {
+        axios.post('http://localhost:8080/api/auth/login', {
         ...respose,
         grantType: 'gmail'
       }).then(res => {
@@ -33,11 +33,32 @@ const Login = () => {
 
   useEffect(() => {
     console.log(gmailresponse);
+    if(gmailresponse.accessToken){
+      axios.post('http://localhost:8080/api/contextpath/getdata',{
+        userId:123456
+      },{
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${gmailresponse.accessToken}`
+        }
+      })
+      .then(res => {
+        console.log(res);
+      })
+      .catch(err => {
+        console.log(err);
+      })
+    }
   },[gmailresponse])
 
   return (
     <>
-      <LoginScreen loginWithGoogle={loginWithGoogle} loginWithApple={loginWithApple} loginWithMeta={loginWithMeta} />
+    {Object.keys(gmailresponse).length ? 
+      <>
+        {gmailresponse.accessToken}
+      </> 
+    :
+      <LoginScreen loginWithGoogle={loginWithGoogle} loginWithApple={loginWithApple} loginWithMeta={loginWithMeta} />}
     </>
   )
 }

@@ -1,7 +1,10 @@
 const axios = require('axios')
 const jwt = require('jsonwebtoken')
+const queryCall = require('../db')
+const { GET_ALL_FROM_USER, CREATE_NEW_USER } = require('../db/query.constants')
+const logger = require('../logger')
 
-const generateAccessToken = ({ email, sub, name }) => {
+const generateAccessToken = ({ email, sub, name, userId }) => {
     const payload = {
         email,
         sub,
@@ -10,9 +13,9 @@ const generateAccessToken = ({ email, sub, name }) => {
     const options = {
         expiresIn: '30m'
     }
-    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY, options)
+    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY+userId, options)
 }
-const generateRefreshToken = ({ email, sub, name }) => {
+const generateRefreshToken = ({ email, sub, name, userId }) => {
     const payload = {
         email,
         sub,
@@ -22,12 +25,12 @@ const generateRefreshToken = ({ email, sub, name }) => {
     const options = {
         expiresIn: '1d'
     }
-    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET_KEY, options)
+    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET_KEY+userId, options)
 }
 
-const verifyAccessToken = (token) => {
+const verifyAccessToken = (token, userId) => {
     try {
-        const decoded = jwt.verify(token, secretKey)
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY+userId)
         return {
             success: true,
             data: decoded
@@ -82,19 +85,36 @@ const signin = (req, res) => {
         headers: {
             "Authorization": `Bearer ${access_token}`
         }
-    }).then(apires => {
-        console.log(apires.data)
-        if (apires.data.email_verified) {
-            response.accessToken = generateAccessToken(apires.data)
-            response.refreshToken = generateRefreshToken(apires.data)
-            response.userName = apires.data.name
+    }).then(async(apires) => {
+        const {data} = apires
+        logger.info(data)
+        if (data.email_verified) {
+            let query = GET_ALL_FROM_USER + ` WHERE email = '${data.email}'`
+            let userExist = await queryCall(query)
+            logger.info(`rowCount ${userExist.rowCount}`)
+            if(!userExist){
+                let createuser = await queryCall(CREATE_NEW_USER,[data.name, data.email, data.sub, 2])
+                logger.info(`createuser ${createuser}`)
+            }
+            // response.accessToken = generateAccessToken({...data,userId:123456})
+            // response.refreshToken = generateRefreshToken({...data,userId:123456})
+            // response.userName = data.name
         }
-        res.status(200).send(response)
+        // res.status(200).send(response)
     }).catch(err => {
         console.log(err);
     })
 }
 
+const authenticateRequest = ( req, res, next) => {
+    let returnData = verifyAccessToken(req?.headers['authorization']?.split(' ')[1], req.body.userId)
+    if(returnData.success){
+        console.log(returnData);
+        next()
+    }
+}
+
 module.exports = {
-    signin
+    signin,
+    authenticateRequest
 }
