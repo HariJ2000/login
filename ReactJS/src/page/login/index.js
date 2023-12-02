@@ -7,6 +7,7 @@ const Login = () => {
 
   const [loginMethod, setloginMethod] = useState('gmail')
   const [gmailresponse, setgmailresponse] = useState({})
+  const [refetch, setrefetch] = useState(false)
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: respose => {
@@ -17,6 +18,7 @@ const Login = () => {
       }).then(res => {
         console.log(res);
         setgmailresponse(res.data)
+        localStorage.setItem('accessToken',res.data.accessToken)
       }).catch(err => {
         console.log(err);
       })
@@ -35,11 +37,11 @@ const Login = () => {
     console.log(gmailresponse);
     if(gmailresponse.accessToken){
       axios.post('http://localhost:8080/api/contextpath/getdata',{
-        userId:123456
+        userId:gmailresponse.userId
       },{
         headers:{
           'Content-Type':'application/json',
-          'Authorization':`Bearer ${gmailresponse.accessToken}`
+          'Authorization':`Bearer ${localStorage.getItem('accessToken')}`
         }
       })
       .then(res => {
@@ -49,13 +51,14 @@ const Login = () => {
         console.log(err);
       })
     }
-  },[gmailresponse])
+  },[refetch])
 
   return (
     <>
     {Object.keys(gmailresponse).length ? 
       <>
-        {gmailresponse.accessToken}
+        {gmailresponse.accessToken}<br/>
+        <button onClick={()=>setrefetch(!refetch)}>click</button>
       </> 
     :
       <LoginScreen loginWithGoogle={loginWithGoogle} loginWithApple={loginWithApple} loginWithMeta={loginWithMeta} />}

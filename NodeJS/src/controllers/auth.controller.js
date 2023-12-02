@@ -89,28 +89,40 @@ const signin = (req, res) => {
         const {data} = apires
         logger.info(data)
         if (data.email_verified) {
-            let query = GET_ALL_FROM_USER + ` WHERE email = '${data.email}'`
-            let userExist = await queryCall(query)
+            let userExist = await queryCall(GET_ALL_FROM_USER + ` WHERE email = '${data.email}'`)
+            let userId = ''
             logger.info(`rowCount ${userExist.rowCount}`)
-            if(!userExist){
-                let createuser = await queryCall(CREATE_NEW_USER,[data.name, data.email, data.sub, 2])
-                logger.info(`createuser ${createuser}`)
+            if(!userExist.rowCount){
+                let createuser = await queryCall(CREATE_NEW_USER,[data.name, data.email, data.sub])
+                logger.info(`createuser ${createuser.rowCount} ${createuser.rows[0].userid}`)
+                userId = createuser.rows[0].userid
+            }else{
+                userId = userExist.rows[0].userid
             }
-            // response.accessToken = generateAccessToken({...data,userId:123456})
-            // response.refreshToken = generateRefreshToken({...data,userId:123456})
-            // response.userName = data.name
+            response.accessToken = generateAccessToken({...data,userId})
+            response.refreshToken = generateRefreshToken({...data,userId})
+            response.userName = data.name
+            response.userId = userId
         }
-        // res.status(200).send(response)
+        res.status(200).send(response)
     }).catch(err => {
         console.log(err);
     })
 }
 
 const authenticateRequest = ( req, res, next) => {
-    let returnData = verifyAccessToken(req?.headers['authorization']?.split(' ')[1], req.body.userId)
+    let token = req?.headers['authorization']?.split(' ')[1]
+    if (!token) {
+        logger.info(`Token not received in header`)
+        return res.sendStatus(401);
+      }
+    let returnData = verifyAccessToken(token, req.body.userId)
     if(returnData.success){
-        console.log(returnData);
+        logger.info(`Token verified.`)
         next()
+    }else{
+        logger.info('Token verified. Invalid token')
+        return res.status(403).json({ error: returnData.error });
     }
 }
 

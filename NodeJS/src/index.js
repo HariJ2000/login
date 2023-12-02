@@ -5,10 +5,12 @@ const bodyParser = require('body-parser')
 const PORT = process.env.PORT || 8080
 const routes = require('./routes')
 const { connectDB } = require('./db/config')
+const { CREATE_NEW_USER } = require('./db/query.constants')
+const queryCall = require('./db')
 
 const app = express()
 
-const startServer = () => {
+const startServer = async () => {
     connectDB()
     app.use(cors())
     app.use(bodyParser.json())
